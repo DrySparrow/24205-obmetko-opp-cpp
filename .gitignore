@@ -1,0 +1,9 @@
+*.class
+.h
+*.txt
+*.csv
+*.log
+External Libraries
+.idea
+target
+Scratches and Consoles
