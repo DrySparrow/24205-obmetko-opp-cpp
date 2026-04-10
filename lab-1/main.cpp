@@ -6,6 +6,7 @@
 #include <iostream>
 
 
+// последовательное умножение матрицы на вектор
 std::vector<double> matrix_vector_mult(const std::vector<double>& matrix,
                                        const std::vector<double>& vec,
                                        int cols, int rows) {
