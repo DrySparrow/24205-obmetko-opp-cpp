@@ -6,12 +6,10 @@
 void localMultiply(const std::vector<double>& A, const std::vector<double>& B, 
                    std::vector<double>& C, int rowsA, int common, int colsB) {
     for (int i = 0; i < rowsA; ++i) {
-        for (int j = 0; j < colsB; ++j) {
-            double sum = 0;
-            for (int k = 0; k < common; ++k) {
-                sum += A[i * common + k] * B[k * colsB + j];
+        for (int k = 0; k < common; ++k) {
+						for (int j = 0; j < colsB; ++j) {
+                C[i * colsB + j] += A[i * common + k] * B[k * colsB + j];
             }
-            C[i * colsB + j] = sum;
         }
     }
 }
@@ -78,7 +76,7 @@ int main(int argc, char** argv) {
     MPI_Bcast(local_A.data(), local_n1 * n2, MPI_DOUBLE, 0, row_comm);
     MPI_Bcast(local_B.data(), n2 * local_n3, MPI_DOUBLE, 0, col_comm);
 
-    // Замер времени только самого вычисления [cite: 39]
+    // Замер времени только самого вычисления
     double startTime = MPI_Wtime();
     localMultiply(local_A, local_B, local_C, local_n1, n2, local_n3);
     double endTime = MPI_Wtime();
