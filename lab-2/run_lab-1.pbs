@@ -1,0 +1,51 @@
+#!/bin/bash
+#PBS -l select=1:ncpus=8:mpiprocs=1
+#PBS -l walltime=02:00:00
+#PBS -N omp_benchmark
+
+cd $PBS_O_WORKDIR
+
+export MPE_HOME=/mnt/storage/home/hpcusers/hpcuser51/mpe2_installed_nusc/mpe2-nusc-built
+export PATH=$MPE_HOME/bin:$PATH
+
+# --- ПАРАМЕТРЫ ЗАДАЧИ ---
+N=3200 
+MAX_CORES=8
+
+echo "Threads;Mode;Time"
+
+# --- ТЕСТ 1: Сравнение Варианта 1 и Варианта 2 ---
+for threads in 1 2 4 6 8
+do
+    export OMP_NUM_THREADS=$threads
+    for mode in 0 1
+    do
+        # Запускаем и фильтруем только вывод времени
+        RES=$(./main.out $N $mode | grep "Time" | awk '{print $2}')
+        echo "$threads;$mode;$RES"
+    done
+done
+
+echo "---------------------------------------"
+echo "Chunk;Static;Dynamic;Guided"
+
+# --- ТЕСТ 2: Исследование schedule (для Варианта 2) ---
+# Фиксируем количество потоков (например, 8)
+export OMP_NUM_THREADS=$MAX_CORES
+CHUNKS=(1 4 16 64 256 1024)
+
+for chunk in "${CHUNKS[@]}"
+do
+    # Используем OMP_SCHEDULE, так как в коде мы прописали schedule(runtime)
+    
+    export OMP_SCHEDULE="static,$chunk"
+    T_STAT=$(./main.out $N 1 | grep "Time" | awk '{print $2}')
+    
+    export OMP_SCHEDULE="dynamic,$chunk"
+    T_DYN=$(./main.out $N 1 | grep "Time" | awk '{print $2}')
+    
+    export OMP_SCHEDULE="guided,$chunk"
+    T_GUI=$(./main.out $N 1 | grep "Time" | awk '{print $2}')
+    
+    echo "$chunk;$T_STAT;$T_DYN;$T_GUI"
+done
