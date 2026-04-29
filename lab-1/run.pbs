@@ -1,0 +1,41 @@
+#!/bin/bash
+#PBS -l select=2:ncpus=8:mpiprocs=8
+#PBS -l walltime=00:30:00
+#PBS -N MinTimeTest
+
+cd $PBS_O_WORKDIR
+
+# Настройка путей MPE (если логи всё ещё нужны, но для чистоты вывода они мешают)
+export MPE_HOME=/mnt/storage/home/hpcusers/hpcuser51/mpe2_installed_nusc/mpe2-nusc-built
+export PATH=$MPE_HOME/bin:$PATH
+
+CORES_LIST="1 2 4 8 16"
+
+for cores in $CORES_LIST
+do
+    min_time=999999.0  # Инициализируем очень большим числом
+    
+    for i in {1..5}
+    do
+        # Запускаем программу и вытаскиваем только числовое значение времени.
+        # ВАЖНО: здесь предполагается, что программа выводит время в формате "Time: X.XXX" 
+        # или просто число. Мы используем grep -oE '[0-9]+\.[0-9]+', чтобы взять только цифры.
+        
+        current_run=$(mpirun -np $cores ./main.out 800 1 | grep -oE '[0-9]+\.[0-9]+' | head -n 1)
+        
+        # Если вывод пустой (ошибка), пропускаем
+        if [ -z "$current_run" ]; then continue; fi
+
+        # Сравнение через bc (bash не умеет сравнивать дробные числа сам)
+        is_less=$(echo "$current_run < $min_time" | bc -l)
+        if [ "$is_less" -eq 1 ]; then
+            min_time=$current_run
+        fi
+    done
+    
+    # Вывод результата для текущего количества ядер
+    echo "$cores: $min_time"
+    
+    # Удаляем временные логи MPE, чтобы не засорять папку
+    rm -f *.clog2 2>/dev/null
+done

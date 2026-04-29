@@ -1,0 +1,15 @@
+ -q S7712261
+#PBS -l select=4:ncpus=4:mpiprocs=4
+#PBS -l walltime=00:02:00
+
+cd $PBS_O_WORKDIR
+
+# Указываем ПРАВИЛЬНЫЙ путь, который мы нашли через find
+export MPE_HOME=/mnt/storage/home/hpcusers/hpcuser51/mpe2_installed_nusc/mpe2-nusc-built
+export PATH=$MPE_HOME/bin:$PATH
+
+# Запуск программы (которую ты уже скомпилировал)
+mpirun -np 16 ./ex_nusc 200 1
+
+# Конвертация лога
+clog2TOslog2 *.clog2
