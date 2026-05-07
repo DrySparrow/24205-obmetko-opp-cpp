@@ -3,7 +3,11 @@
 *.txt
 *.csv
 *.log
-External Libraries
 .idea
 target
-Scratches and Consoles
+.ssh
+.vscode
+.dist
+*.exe
+*.slog2
+mpe2-2.4.7
