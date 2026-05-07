@@ -37,11 +37,11 @@ try:
     
     if n_data:
         # 2. Отрисовка графика
-        plt.plot(n_data, t_data, 'o-', color='blue', label='MPI 2D (16 ядер)', linewidth=2, markersize=8)
+        plt.plot(n_data, t_data, 'o-', color='blue', label='', linewidth=2, markersize=8)
 
         # 3. Оформление согласно заданию
-        plt.title('Зависимость времени выполнения от размера матрицы N', fontsize=14)
-        plt.xlabel('Размер матрицы (N)', fontsize=12)
+        plt.title('Зависимость времени выполнения от числа процессов', fontsize=14)
+        plt.xlabel('Число процессов', fontsize=12)
         plt.ylabel('Время выполнения (сек)', fontsize=12)
         
         # Настройка сетки и легенды
