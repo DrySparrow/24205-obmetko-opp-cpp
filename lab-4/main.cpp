@@ -11,9 +11,9 @@ const double A = 1.0e5;
 const double EPS = 1.0e-8;
 
 // Размер сетки
-const int NX = 512;
-const int NY = 512;
-const int NZ = 512;
+const int NX = 400;
+const int NY = 400;
+const int NZ = 400;
 
 double target_phi(double x, double y, double z) {
     return x * x + y * y + z * z;
@@ -127,12 +127,41 @@ int main(int argc, char** argv) {
 
     } while (max_diff > EPS && iter < 10000);
 
-    // Конец замера времени
     double end_time = MPI_Wtime();
 
+    // проверка результата
+    double local_error = 0.0;
+    for (int i = 1; i <= local_nx; ++i) {
+        int global_i = start_i + i - 1;
+        // Пропускаем границы всей области, так как там значения заданы точно
+        if (global_i <= 0 || global_i >= NX - 1) continue;
+
+        double x = X_START + global_i * hx;
+        for (int j = 1; j < NY - 1; ++j) {
+            double y = Y_START + j * hy;
+            for (int k = 1; k < NZ - 1; ++k) {
+                double z = Z_START + k * hz;
+                
+                double analytical = target_phi(x, y, z);
+                double diff = std::abs(phi[idx(i, j, k)] - analytical);
+                if (diff > local_error) {
+                    local_error = diff;
+                }
+            }
+        }
+    }
+
+    double global_error = 0.0;
+    MPI_Reduce(&local_error, &global_error, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
+
     if (rank == 0) {
-        // Вывод только числа
+        // Вывод только числа (сек)
         std::cout << (end_time - start_time) << std::endl;
+    }
+    
+    if (rank == 0) {
+        std::cout << "Iterations: " << iter << std::endl;
+        std::cout << "Max absolute error: " << global_error << std::endl;
     }
 
     MPI_Finalize();
