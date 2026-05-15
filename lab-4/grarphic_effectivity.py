@@ -22,7 +22,7 @@ def get_efficiency_data(file_path):
 
 p, e = get_efficiency_data('in.txt')
 
-plt.figure(figsize=(10, 6))
+plt.figure(figsize=(10, 10))
 plt.plot(p, e, 'o-', color='blue', label='Эффективность E(p)')
 plt.axhline(y=1.0, color='red', linestyle='--', label='Идеальная эффективность')
 
@@ -32,4 +32,8 @@ plt.ylabel('Эффективность E')
 plt.xticks(p)
 plt.grid(True)
 plt.legend()
+
+# Устанавливаем нижнюю границу оси Y в 0
+plt.ylim(bottom=0)
+
 plt.show()
