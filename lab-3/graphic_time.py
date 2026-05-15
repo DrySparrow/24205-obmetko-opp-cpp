@@ -1,59 +1,48 @@
 import matplotlib.pyplot as plt
 import pandas as pd
+import matplotlib.ticker as ticker
+import io
 
-# 1. Загружаем данные из файла
-#    Предполагается, что файл 'results.csv' лежит в той же папке,
-#    и разделитель — точка с запятой ';'
-try:
-    df = pd.read_csv('in.txt', sep=';')
-except FileNotFoundError:
-    print("Ошибка: файл 'results.csv' не найден.")
-    exit()
+# Чтение данных (используем io для примера, замените на pd.read_csv('in.txt', sep=';'))
+df = pd.read_csv("in.txt", sep=';')
 
-# 2. Проверим, что нужные колонки есть
-required = ['NP', 'N', 'MinTime']
-if not all(col in df.columns for col in required):
-    print("Файл должен содержать колонки: NP, N, MinTime")
-    exit()
+# Подготовка индексов для оси X
+# Получаем уникальные N, чтобы сопоставить их с индексами 0, 1, 2...
+unique_n = sorted(df['N'].unique())
+n_to_index = {val: i for i, val in enumerate(unique_n)}
 
-# 3. Настройка графика
 plt.figure(figsize=(12, 7))
 
-# 4. Группируем по NP и рисуем отдельную линию для каждого NP
+# Рисуем графики
 for np_val in sorted(df['NP'].unique()):
-    subset = df[df['NP'] == np_val]
-    # Сортируем по N, чтобы линия шла правильно
-    subset = subset.sort_values('N')
-    plt.plot(subset['N'], subset['MinTime'], 
+    subset = df[df['NP'] == np_val].sort_values('N')
+    
+    # Преобразуем значения N в их индексы (0, 1, 2...)
+    indices = [n_to_index[x] for x in subset['N']]
+    
+    plt.plot(indices, subset['MinTime'], 
              marker='o', linestyle='-', linewidth=2, markersize=8,
              label=f'NP = {np_val}')
 
-# 5. Оформление
-plt.title('Зависимость времени умножения матриц от размера и числа потоков', fontsize=14)
-plt.xlabel('Размер матрицы N (N x N)', fontsize=12)
+    # Аннотации (подписи значений)
+    for i, row in subset.iterrows():
+        plt.annotate(f"{row['MinTime']:.2f}", 
+                     (n_to_index[row['N']], row['MinTime']),
+                     textcoords="offset points", xytext=(0, 10), 
+                     ha='center', fontsize=9)
+
+# --- Настройка осей ---
+
+# Ось X: устанавливаем индексы и подписываем их соответствующими значениями N
+plt.xticks(range(len(unique_n)), unique_n)
+
+# Ось Y: интервал 5 секунд
+plt.gca().yaxis.set_major_locator(ticker.MultipleLocator(5))
 plt.ylabel('Минимальное время выполнения (сек)', fontsize=12)
 
-
-
-# Сетка
-plt.grid(True, linestyle='--', alpha=0.6)
-
-# Логарифмическая шкала по обеим осям (часто полезна для таких данных)
-# Если хотите обычную линейную шкалу — закомментируйте следующие две строки
-plt.xscale('log')
-plt.yscale('log')
-
-# Легенда
-plt.legend(title='Количество потоков', fontsize=10)
-
-# Подписи значений у точек (опционально)
-for np_val in sorted(df['NP'].unique()):
-    subset = df[df['NP'] == np_val].sort_values('N')
-    for _, row in subset.iterrows():
-        plt.annotate(f"{row['MinTime']:.3f}", 
-                     (row['N'], row['MinTime']),
-                     textcoords="offset points", xytext=(5, 5), 
-                     ha='left', fontsize=8, alpha=0.7)
+plt.title('Зависимость времени от N', fontsize=14)
+plt.grid(True, linestyle='--', alpha=0.7)
+plt.legend(title='Потоки (NP)')
 
 plt.tight_layout()
 plt.show()
