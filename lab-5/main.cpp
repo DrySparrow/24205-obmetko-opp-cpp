@@ -46,6 +46,7 @@ public:
             cur_task_count += TOTAL_TASKS % size;
         }
 
+        // полная ошибка вычислений
         double total_imbalance_sum = 0;
 
         for (int iter = 0; iter < iterations; ++iter) {
@@ -156,6 +157,7 @@ private:
     std::atomic<bool> is_running{true};
     std::thread responder_thread;
 
+    // функция нагрузки на процесс
     void do_work(int weight) {
         double res = 0;
         volatile double dummy = 0;
@@ -165,12 +167,13 @@ private:
         dummy = res;
     }
 
-    // ОПТИМИЗИРОВАНО: MPI_Send вынесен за пределы критической секции
+    // функция, выполняющаяся в отдельном потоке
     void responder_routine() {
         while (is_running) {
             int request_from;
             MPI_Status status;
 
+            // ждём пока другой процесс запросит задачи у текущего
             MPI_Recv(&request_from, 1, MPI_INT, MPI_ANY_SOURCE, TAG_REQUEST, MPI_COMM_WORLD, &status);
             if (request_from == -1) {
                 break;
@@ -180,6 +183,7 @@ private:
             std::vector<int> tasks_to_send;
 
             {
+                // если задач больше чем MIN_TASKS_TO_SHARE, то одтаём половину из них
                 std::lock_guard<std::mutex> lock(mtx);
                 if (remaining > MIN_TASKS_TO_SHARE) {
                     to_share = remaining / 2;
@@ -211,10 +215,12 @@ private:
             // Вычисляем номер жертвы с учетом замыкания в кольцо
             int victim = (rank + offset + size) % size;
 
+            // запрос на получение задач
             int tasks_received = 0;
             MPI_Send(&rank, 1, MPI_INT, victim, TAG_REQUEST, MPI_COMM_WORLD);
             MPI_Recv(&tasks_received, 1, MPI_INT, victim, TAG_ANSWER, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
+            // если получили задачи
             if (tasks_received > 0) {
                 std::vector<int> received_buffer(tasks_received);
                 // Принимаем данные во временный буфер БЕЗ лока
@@ -228,6 +234,7 @@ private:
                 }
                 return true;
             }
+            // если не получили, то делаем запрос другому потоку
         }
         return false;
     }
@@ -238,6 +245,7 @@ int main(int argc, char** argv) {
         std::cerr << "Usage: " << argv[0] << " <iterations>\n";
         return 1;
     }
+    // количество итераций (одинаковых прогонов)
     int iterations = std::stoi(argv[1]);
     int provided;
     
