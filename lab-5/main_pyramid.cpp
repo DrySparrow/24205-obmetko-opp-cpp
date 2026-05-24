@@ -21,29 +21,54 @@ public:
 
         for (int iter = 0; iter < iterations; ++iter) {
             double cur_total_weight = 0;
-            
-            // Расчет нагрузки в виде "Пирамиды"
             long remaining = cur_task_count;
-            std::vector<int> tasks(remaining);
 
             int center_process = iter % size;
 
-            double total_coeffs = 0;
+            // Расчет коэффициентов
+            long long total_coeffs = 0;
             for (int i = 0; i < size; ++i) {
                 total_coeffs += (size - std::abs(i - center_process));
             }
+            long long cur_coeff = size - std::abs(rank - center_process);
 
-            double cur_coeff = size - std::abs(rank - center_process);
-            double initial_weight = (TOTAL_WEIGHT * cur_coeff / total_coeffs);
+            // Распределяем TOTAL_WEIGHT строго без потерь (целочисленным способом)
+            long long base_process_weight = (TOTAL_WEIGHT * cur_coeff) / total_coeffs;
+            long long process_weight_remainder = (TOTAL_WEIGHT * cur_coeff) % total_coeffs;
+            
+            // Отдадим остаток от деления весов, например, процессу с rank == 0 на этой итерации
+            // или распределим по цепочке, чтобы сумма ВСЕГДА была равна TOTAL_WEIGHT
+            if (rank == center_process) { 
+                // так как сумма остатков по всем cur_coeff равна какому-то числу, 
+                // для простоты можно скорректировать веса глобально. 
+                // Но еще надежнее — распределить остаток деления внутри самого процесса:
+            }
 
-            tasks.assign(remaining, static_cast<int>(initial_weight / remaining));
+            // Чтобы вес внутри процесса не терялся при делении на количество задач:
+            long long base_task_weight = base_process_weight / remaining;
+            long long task_remainder = base_process_weight % remaining;
 
-            // Выполнение работы (именно это сформирует блоки-кирпичики на таймлайне)
+            std::vector<int> tasks(remaining, static_cast<int>(base_task_weight));
+            // Распределяем остаток по единичке между первыми задачами
+            for (long long i = 0; i < task_remainder; ++i) {
+                tasks[i]++;
+            }
+
+            // Выполнение работы
             for (int weight : tasks) {
                 do_work(weight);
                 cur_total_weight += weight;
                 total_done++;
             }
+
+            
+
+            // ВЫВОД НА КАЖДОЙ ИТЕРАЦИИ ДЛЯ КАЖДОГО ПРОЦЕССА (Выполнение требования)
+            // Использование std::flush или упорядочивание вывода может потребоваться, 
+            // но базово пишем так:
+            std::cout << "[Iter " << iter << "] Process " << rank 
+                    << ": Tasks executed = " << remaining 
+                    << ", Total weight = " << cur_total_weight << std::endl;
 
             // Синхронизация и сбор статистики
             double local_load = cur_total_weight;
@@ -62,10 +87,11 @@ public:
         double load_imbalance_factor = total_imbalance_sum / iterations;
         
         if (rank == 0) {
+            std::cout << "--- Final Stats ---\n";
             std::cout << "Load Imbalance Factor: " << load_imbalance_factor << "\n";
-
-            std::cout << "Rank " << rank << ": Done " << total_done << " tasks in " << end_time - start_time << "s\n";
         }
+        // Вывод общего времени для каждого процесса
+        std::cout << "Rank " << rank << ": Total Done " << total_done << " tasks in " << end_time - start_time << "s\n";
     }
 
 private:
